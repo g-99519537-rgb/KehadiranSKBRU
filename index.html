@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <!-- Tag Meta PWA & Akses Mudah Alih -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4A90E2">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Sokongan Khusus iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="App Guru">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kehadiran Guru Multi-Peranan</title>
+    <!-- Library Jana PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; margin: 0; }
+        .container { max-width: 800px; margin: 20px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2, h3, h4 { color: #1a73e8; margin-top: 0; }
+        .text-center { text-align: center; }
+        .card { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; }
+        input[type="text"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; font-size: 14px; text-align: center; }
+        .btn-primary { background-color: #1a73e8; width: 100%; }
+        .btn-success { background-color: #28a745; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-hadir { background-color: #28a745; flex: 1; }
+        .btn-keluar { background-color: #ffc107; color: #000; flex: 1; }
+        .btn-absen { background-color: #dc3545; flex: 1; }
+        .btn-pdf { background-color: #17a2b8; width: 100%; margin-top: 15px; }
+        .btn-logout { background-color: #6c757d; float: right; padding: 5px 10px; font-size: 12px; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        .status-box { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px 15px; font-size: 0.85em; margin-bottom: 15px; }
+        .info-card { display: flex; justify-content: space-between; background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .info-item { text-align: center; flex: 1; }
+        .info-item:first-child { border-right: 1px solid #ccc; }
+        .info-title { font-size: 0.85em; color: #666; margin-bottom: 5px; }
+        .info-time { font-size: 1.2em; font-weight: bold; color: #1a73e8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table, th, td { border: 1px solid #e0e0e0; }
+        th, td { padding: 10px; text-align: left; font-size: 0.85em; }
+        th { background-color: #f8f9fa; }
+        .hidden { display: none; }
+        .user-info { background: #e6f4ea; border-radius: 6px; padding: 12px 15px; margin-bottom: 15px; font-weight: bold; color: #137333; font-size: 1.1em; }
+        .flex-row { display: flex; gap: 10px; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- PAPARAN 1: LOG MASUK -->
+    <div id="view-login">
+        <h2 class="text-center">Sistem Kehadiran Guru</h2>
+        <p class="text-center" style="color:#666;">Sila pilih peranan untuk meneruskan</p>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="pilihPeranan">Pilih Peranan:</label>
+                <select id="pilihPeranan" onchange="tukarBorangPeranan()">
+                    <option value="guru">Guru</option>
+                    <option value="admin">Pentadbir (Admin)</option>
+                </select>
+            </div>
+
+            <!-- Form Guru -->
+            <div id="form-guru">
+                <div class="form-group">
+                    <label for="selectNamaGuru">Pilih Nama Guru:</label>
+                    <select id="selectNamaGuru">
+                        <!-- Senarai nama akan dimasukkan secara automatik -->
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="masukSebagaiGuru()">Masuk Ke Sistem</button>
+            </div>
+
+            <!-- Form Admin -->
+            <div id="form-admin" class="hidden">
+                <div class="form-group">
+                    <label for="inputKunciAdmin">Kata Laluan Admin:</label>
+                    <input type="password" id="inputKunciAdmin" placeholder="Masukkan kata laluan admin">
+                </div>
+                <button class="btn btn-primary" onclick="masukSebagaiAdmin()">Log Masuk Admin</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAPARAN 2: GURU -->
+    <div id="view-guru" class="hidden">
+        <button class="btn btn-logout" onclick="logKeluar()">Log Keluar</button>
+        <h2>Mod Rekod Kehadiran</h2>
+        
+        <div class="user-info" id="paparNamaGuru">Guru: -</div>
+        
+        <!-- Paparan Masa Hadir & Pulang -->
+        <div class="info-card">
+            <div class="info-item">
+                <div class="info-title">WAKTU HADIR HARI INI</div>
+                <div class="info-time" id="paparMasaHadir">-- : --</div>
+            </div>
+            <div class="info-item">
+                <div class="info-title">WAKTU PULANG HARI INI</div>
+                <div class="info-time" id="paparMasaPulang">-- : --</div>
+            </div>
+        </div>
+
+        <div class="status-box" id="lokasi-status">Menyemak status GPS...</div>
+
+        <div class="button-group">
+            <button class="btn btn-hadir" onclick="prosesKehadiran('Hadir')">Hadir</button>
+            <button class="btn btn-keluar" onclick="prosesKehadiran('Keluar')">Pulang</button>
+            <button class="btn btn-absen" onclick="prosesKehadiran('Tidak Hadir')">Tidak Hadir</button>
+        </div>
+    </div>
+
+    <!-- PAPARAN 3: ADMIN -->
+    <div id="view-admin" class="hidden">
+        <button class="btn btn-logout" onclick="logKeluar()">Log Keluar</button>
+        <h2>Panel Pentadbir (Admin)</h2>
+
+        <!-- Modul Pengurusan Guru -->
+        <div class="card">
+            <h3>Pengurusan Senarai Guru</h3>
+            <div class="form-group">
+                <label for="inputGuruBaru">Daftar Guru Baharu:</label>
+                <div class="flex-row">
+                    <input type="text" id="inputGuruBaru" placeholder="Contoh: Cikgu Siti Aminah">
+                    <button class="btn btn-success" onclick="tambahGuruBaru()" style="white-space: nowrap;">+ Tambah</button>
+                </div>
+            </div>
+
+            <label>Senarai Guru Terdaftar:</label>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">No.</th>
+                        <th>Nama Guru</th>
+                        <th style="width: 100px; text-align: center;">Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody id="jadual-pengurusan-guru">
+                    <!-- Senarai guru terdaftar -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modul Laporan Kehadiran -->
+        <div class="card">
+            <h3>Laporan Kehadiran Guru</h3>
+            <button class="btn btn-pdf" onclick="janaPDF()">Muat Turun Laporan PDF Harian</button>
+
+            <div id="kawasan-cetak">
+                <h4 id="tarikh-hari-ini" style="margin-top:20px; margin-bottom:10px;"></h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Masa</th>
+                            <th>Nama Guru</th>
+                            <th>Status</th>
+                            <th>Sebab / Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jadual-rekod-admin">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const KUNCI_ADMIN = "admin123"; 
+    const URL_GOOGLE_SCRIPT = "TAMPAL_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DI_SINI";
+    const KOORDINAT_SEKOLAH = { lat: 2.5354, lng: 102.4005 }; 
+    const RADIUS_SEKOLAH_KM = 0.5; 
+
+    let sesiGuruSemasa = "";
+    let lokasiSemasa = null;
+
+    // Inisialisasi Aplikasi
+    window.onload = function() {
+        muatSenaraiGuru();
+    };
+
+    // Semak lokasi GPS
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                lokasiSemasa = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                document.getElementById('lokasi-status').innerText = "✅ Lokasi GPS dikesan. Anda sedia merekod.";
+            },
+            (err) => {
+                document.getElementById('lokasi-status').innerText = "⚠️ Ralat GPS: Sila aktifkan lokasi pada peranti anda.";
+            }
+        );
+    }
+
+    // --- PENGURUSAN GURU (LOCALSTORAGE) ---
+    function dapatkanSenaraiGuru() {
+        return JSON.parse(localStorage.getItem('senaraiGuru') || '["Cikgu Ahmad Faiz", "Cikgu Nurul Huda"]');
+    }
+
+    function muatSenaraiGuru() {
+        const senarai = dapatkanSenaraiGuru();
+        const selectBox = document.getElementById('selectNamaGuru');
+        const jadualAdmin = document.getElementById('jadual-pengurusan-guru');
+        
+        selectBox.innerHTML = "";
+        jadualAdmin.innerHTML = "";
+
+        if (senarai.length === 0) {
+            selectBox.innerHTML = `<option value="">-- Tiada Guru Terdaftar (Sila minta Admin daftarkan) --</option>`;
+            jadualAdmin.innerHTML = `<tr><td colspan="3" class="text-center">Tiada guru terdaftar.</td></tr>`;
+            return;
+        }
+
+        senarai.forEach((nama, index) => {
+            // Isi dropdown guru
+            const opt = document.createElement('option');
+            opt.value = nama;
+            opt.innerText = nama;
+            selectBox.appendChild(opt);
+
+            // Isi jadual pengurusan admin
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${nama}</td>
+                <td class="text-center">
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="padamGuru(${index})">Padam</button>
+                </td>
+            `;
+            jadualAdmin.appendChild(tr);
+        });
+    }
+
+    function tambahGuruBaru() {
+        const input = document.getElementById('inputGuruBaru');
+        const namaBaru = input.value.trim();
+
+        if (!namaBaru) {
+            alert("Sila masukkan nama guru.");
+            return;
+        }
+
+        let senarai = dapatkanSenaraiGuru();
+        if (senarai.includes(namaBaru)) {
+            alert("Nama guru ini sudah wujud dalam sistem!");
+            return;
+        }
+
+        senarai.push(namaBaru);
+        localStorage.setItem('senaraiGuru', JSON.stringify(senarai));
+        input.value = "";
+        muatSenaraiGuru();
+        alert(`Guru ${namaBaru} berjaya didaftarkan!`);
+    }
+
+    function padamGuru(index) {
+        let senarai = dapatkanSenaraiGuru();
+        const namaDipadams = senarai[index];
+
+        if (confirm(`Adakah anda pasti untuk memadam ${namaDipadams}?`)) {
+            senarai.splice(index, 1);
+            localStorage.setItem('senaraiGuru', JSON.stringify(senarai));
+            muatSenaraiGuru();
+        }
+    }
+
+    // --- NAVIGASI & PERANAN ---
+    function tukarBorangPeranan() {
+        const peranan = document.getElementById('pilihPeranan').value;
+        if (peranan === 'admin') {
+            document.getElementById('form-guru').classList.add('hidden');
+            document.getElementById('form-admin').classList.remove('hidden');
+        } else {
+            document.getElementById('form-guru').classList.remove('hidden');
+            document.getElementById('form-admin').classList.add('hidden');
+        }
+    }
+
+    function masukSebagaiGuru() {
+        const selectBox = document.getElementById('selectNamaGuru');
+        const nama = selectBox.value;
+
+        if (!nama) {
+            alert("Sila pilih nama guru dari senarai.");
+            return;
+        }
+
+        sesiGuruSemasa = nama;
+        document.getElementById('paparNamaGuru').innerText = "Guru: " + sesiGuruSemasa;
+        
+        kemaskiniPaparanMasaGuru();
+
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('view-guru').classList.remove('hidden');
+    }
+
+    function masukSebagaiAdmin() {
+        const laluan = document.getElementById('inputKunciAdmin').value;
+        if (laluan !== KUNCI_ADMIN) {
+            alert("Kata laluan Admin salah!");
+            return;
+        }
+        
+        document.getElementById('tarikh-hari-ini').innerText = "Rekod Kehadiran: " + new Date().toLocaleDateString('ms-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        kemaskiniJadualAdmin();
+
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('view-admin').classList.remove('hidden');
+    }
+
+    function logKeluar() {
+        sesiGuruSemasa = "";
+        document.getElementById('inputKunciAdmin').value = "";
+        
+        document.getElementById('view-guru').classList.add('hidden');
+        document.getElementById('view-admin').classList.add('hidden');
+        document.getElementById('view-login').classList.remove('hidden');
+    }
+
+    // --- LOGIK REKOD KEHADIRAN GURU ---
+    function kemaskiniPaparanMasaGuru() {
+        const rekod = JSON.parse(localStorage.getItem('rekodKehadiran') || "[]");
+        const tarikhHariIni = new Date().toISOString().slice(0, 10);
+
+        let masaHadir = "-- : --";
+        let masaPulang = "-- : --";
+
+        rekod.forEach(item => {
+            if (item.nama === sesiGuruSemasa && item.tarikhISO === tarikhHariIni) {
+                if (item.jenis === 'Hadir') masaHadir = item.masaHanya;
+                if (item.jenis === 'Keluar') masaPulang = item.masaHanya;
+            }
+        });
+
+        document.getElementById('paparMasaHadir').innerText = masaHadir;
+        document.getElementById('paparMasaPulang').innerText = masaPulang;
+    }
+
+    function kiraJarak(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    function prosesKehadiran(jenis) {
+        let sebab = "-";
+        const now = new Date();
+        const hari = now.getDay();
+        const waktuSemasa = now.getHours() * 60 + now.getMinutes();
+        const waktuMula = 7 * 60 + 30; 
+
+        let waktuTamat = 0;
+        if (hari === 1 || hari === 2) waktuTamat = 13 * 60 + 40;      
+        else if (hari === 3 || hari === 4) waktuTamat = 13 * 60 + 10; 
+        else if (hari === 5) waktuTamat = 12 * 60 + 5;                
+
+        if (jenis === 'Tidak Hadir') {
+            sebab = prompt("Sila nyatakan sebab tidak hadir (MC / Cuti Rehat):");
+            if (!sebab || !sebab.trim()) return;
+            simpanRekod(sesiGuruSemasa, jenis, sebab);
+            return;
+        }
+
+        if (!lokasiSemasa) {
+            alert("Lokasi GPS belum dikesan. Sila pastikan GPS dihidupkan.");
+            return;
+        }
+
+        const jarak = kiraJarak(lokasiSemasa.lat, lokasiSemasa.lng, KOORDINAT_SEKOLAH.lat, KOORDINAT_SEKOLAH.lng);
+        if (jarak > RADIUS_SEKOLAH_KM) {
+            alert(`PENAFIAN LOKASI: Anda berada di luar kawasan sekolah! (Jarak: ${jarak.toFixed(2)} km)`);
+            return;
+        }
+
+        if (jenis === 'Hadir' && waktuSemasa > waktuMula) {
+            sebab = prompt("AMARAN LEWAT: Anda mendaftar selepas 7:30 AM. Sila nyatakan sebab:");
+            if (sebab === null) return;
+        }
+
+        if (jenis === 'Keluar') {
+            if (waktuTamat === 0) { alert("Hari ini bukan hari persekolahan."); return; }
+            if (waktuSemasa < waktuTamat) {
+                sebab = prompt("AMARAN PULANG AWAL: Anda mendaftar keluar sebelum masa tamat. Sila nyatakan sebab:");
+                if (sebab === null) return;
+            }
+        }
+
+        simpanRekod(sesiGuruSemasa, jenis, sebab);
+    }
+
+    function simpanRekod(nama, jenis, sebab) {
+        const d = new Date();
+        const masaLengkap = d.toLocaleString('ms-MY');
+        const masaHanya = d.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+        const tarikhISO = d.toISOString().slice(0, 10);
+
+        const dataBaru = { 
+            masa: masaLengkap, 
+            masaHanya: masaHanya,
+            tarikhISO: tarikhISO,
+            nama: nama, 
+            jenis: jenis, 
+            sebab: sebab || "-" 
+        };
+
+        let rekodTempatan = JSON.parse(localStorage.getItem('rekodKehadiran') || "[]");
+        rekodTempatan.push(dataBaru);
+        localStorage.setItem('rekodKehadiran', JSON.stringify(rekodTempatan));
+
+        if (URL_GOOGLE_SCRIPT && !URL_GOOGLE_SCRIPT.includes("TAMPAL_URL")) {
+            fetch(URL_GOOGLE_SCRIPT, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataBaru)
+            });
+        }
+
+        alert(`Rekod ${jenis} berjaya disimpan!`);
+        kemaskiniPaparanMasaGuru();
+    }
+
+    function kemaskiniJadualAdmin() {
+        const jadual = document.getElementById('jadual-rekod-admin');
+        jadual.innerHTML = "";
+        let rekodTempatan = JSON.parse(localStorage.getItem('rekodKehadiran') || "[]");
+
+        rekodTempatan.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.masa}</td>
+                <td>${item.nama}</td>
+                <td><strong>${item.jenis}</strong></td>
+                <td>${item.sebab}</td>
+            `;
+            jadual.appendChild(row);
+        });
+    }
+
+    function janaPDF() {
+        const elemen = document.getElementById('kawasan-cetak');
+        html2pdf().set({
+            margin: 0.5,
+            filename: `Rekod_Kehadiran_Guru_${new Date().toISOString().slice(0,10)}.pdf`,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        }).from(elemen).save();
+    }
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker aktif:', reg.scope))
+        .catch(err => console.error('Pendaftaran SW gagal:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
