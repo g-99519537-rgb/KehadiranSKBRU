@@ -18,12 +18,15 @@
         .btn-hadir { background-color: #28a745; }
         .btn-keluar { background-color: #ffc107; color: #000; }
         .btn-absen { background-color: #dc3545; }
-        .btn-pdf { background-color: #17a2b8; width: 100%; margin-top: 10px; }
+        /* Butang PDF disembunyikan secara lalai untuk pengguna biasa */
+        .btn-pdf { background-color: #17a2b8; width: 100%; margin-top: 10px; display: none; }
         .status-box { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 10px 15px; font-size: 0.85em; margin-bottom: 20px; border-radius: 0 6px 6px 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         table, th, td { border: 1px solid #e0e0e0; }
         th, td { padding: 10px; text-align: left; font-size: 0.9em; }
         th { background-color: #f8f9fa; }
+        .admin-panel { margin-top: 25px; text-align: center; border-top: 1px dashed #ccc; padding-top: 15px; }
+        .admin-link { color: #666; font-size: 0.85em; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -47,7 +50,7 @@
         <button class="btn btn-absen" onclick="prosesKehadiran('Tidak Hadir')">Tidak Hadir</button>
     </div>
 
-    <button class="btn btn-pdf" onclick="janaPDF()">Muat Turun Laporan PDF</button>
+    <button class="btn btn-pdf" id="btnPdf" onclick="janaPDF()">Muat Turun Laporan PDF</button>
 
     <div id="kawasan-cetak">
         <h4 id="tarikh-hari-ini" style="margin-top:25px; margin-bottom:10px;"></h4>
@@ -64,24 +67,50 @@
             </tbody>
         </table>
     </div>
+
+    <div class="admin-panel">
+        <span class="admin-link" id="adminStatus" onclick="logMasukAdmin()">🔒 Log Masuk Admin</span>
+    </div>
 </div>
 
 <script>
-    // TAMPAL URL WEB APP APPS SCRIPT ANDA DI SINI
-    const URL_GOOGLE_SCRIPT = "TAMPAL_URL_WEB_APP_GOOGLE_APPS_SCRIPT_DI_SINI";
-    
-    const KOORDINAT_SEKOLAH = { lat: 2.5354, lng: 102.4005 }; // Kemaskini koordinat sekolah
-    const RADIUS_SEKOLAH_KM = 0.5;
+    const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwiEr_mzHMF4iEujTGJmeYAjP3Xfb0aHFwollz5gxzxDAWfdF1D8IziyXWBkFsXwpgr/exec";
+    const KOORDINAT_SEKOLAH = { lat: 2.660967, lng: 102.419825 };
+    const RADIUS_SEKOLAH_KM = 0.05757;
+
+    // KATA LALUAN ADMIN (Tukar kata laluan mengikut keperluan anda di sini)
+    const KATA_LALUAN_ADMIN = "1234";
+    let isAdmin = false;
 
     let lokasiSemasa = null;
 
     document.getElementById('tarikh-hari-ini').innerText = "Rekod Kehadiran: " + new Date().toLocaleDateString('ms-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    // Memuatkan Senarai Guru dari Google Sheets
     window.addEventListener('DOMContentLoaded', () => {
         muatSenaraiGuru();
         semakGPS();
     });
+
+    // Fungsi Log Masuk Admin
+    function logMasukAdmin() {
+        if (isAdmin) {
+            isAdmin = false;
+            document.getElementById('btnPdf').style.display = 'none';
+            document.getElementById('adminStatus').innerText = '🔒 Log Masuk Admin';
+            alert("Anda telah log keluar daripada Mod Admin.");
+            return;
+        }
+
+        const inputPass = prompt("Sila masukkan Kata Laluan Admin:");
+        if (inputPass === KATA_LALUAN_ADMIN) {
+            isAdmin = true;
+            document.getElementById('btnPdf').style.display = 'block';
+            document.getElementById('adminStatus').innerText = '🔓 Mod Admin Aktif (Klik untuk Log Keluar)';
+            alert("Log masuk Admin berjaya! Butang 'Muat Turun Laporan PDF' kini dipaparkan.");
+        } else if (inputPass !== null) {
+            alert("Kata laluan salah! Akses ditolak.");
+        }
+    }
 
     function muatSenaraiGuru() {
         if (!URL_GOOGLE_SCRIPT || URL_GOOGLE_SCRIPT.includes("TAMPAL_URL")) return;
@@ -218,6 +247,10 @@
     }
 
     function janaPDF() {
+        if (!isAdmin) {
+            alert("Akses ditolak! Hanya Admin sahaja yang boleh menjana PDF.");
+            return;
+        }
         const elemen = document.getElementById('kawasan-cetak');
         html2pdf().set({
             margin: 0.5,
